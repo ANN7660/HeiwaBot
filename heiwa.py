@@ -56,15 +56,23 @@ async def on_ready():
 
 
 @bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+    await bot.process_commands(message)
+
+
+@bot.event
 async def on_member_join(member):
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
     if channel:
         embed = discord.Embed(
-            title="🎉 Bienvenue sur Heiwa !",
-            description=f"Salut {member.mention}, bienvenue sur **Heiwa** ! Profite bien du serveur 😄",
+            title="🎉 Bienvenue !",
+            description=f"Bienvenue sur **Heiwa**, {member.mention} ! 🎊",
             color=discord.Color.green(),
             timestamp=datetime.now()
         )
+        embed.set_thumbnail(url=member.display_avatar.url)
         await channel.send(embed=embed)
 
 
@@ -74,32 +82,32 @@ async def on_member_remove(member):
     if channel:
         embed = discord.Embed(
             title="👋 Au revoir",
-            description=f"{member.display_name} nous a quittés 😢",
+            description=f"{member.display_name} nous a quittés...",
             color=discord.Color.red(),
             timestamp=datetime.now()
         )
+        embed.set_thumbnail(url=member.display_avatar.url)
         await channel.send(embed=embed)
 
 
 # ===== COMMANDES =====
-@bot.command()
+@bot.command(name="ping")
 async def ping(ctx):
-    latency = round(bot.latency * 1000)
-    await ctx.send(f"Pong ! Latence : {latency}ms")
+    await ctx.send(f"🏓 Pong ! Latence : {round(bot.latency * 1000)} ms")
 
 
-@bot.command()
-async def help(ctx):
+@bot.command(name="help")
+async def help_command(ctx):
     embed = discord.Embed(
         title="📜 Commandes disponibles",
-        description="Voici la liste des commandes :",
-        color=discord.Color.blue()
+        description="Voici les commandes disponibles :",
+        color=discord.Color.blurple()
     )
-    embed.add_field(name="!ping", value="Vérifie la latence du bot", inline=False)
+    embed.add_field(name="!ping", value="Test la latence du bot", inline=False)
     embed.add_field(name="!mute @membre durée raison", value="Mute un membre", inline=False)
     embed.add_field(name="!unmute @membre", value="Démute un membre", inline=False)
     embed.add_field(name="!ban @membre raison", value="Ban un membre", inline=False)
-    embed.add_field(name="!unban identifiant", value="Débanni un membre", inline=False)
+    embed.add_field(name="!unban identifiant", value="Déban un membre", inline=False)
     await ctx.send(embed=embed)
 
 
@@ -160,9 +168,11 @@ async def mute_member(ctx, member: discord.Member, duration: int = 10, *, raison
                 color=discord.Color.green()
             )
             await ctx.send(embed=unmute_embed)
+        return
 
     except Exception as e:
         await ctx.send(f"❌ Erreur lors du mute: {e}")
+        return
 
 
 # ===== COMMANDE UNMUTE =====
@@ -225,12 +235,15 @@ async def ban_member(ctx, member: discord.Member, *, raison="Aucune raison fourn
         embed.set_thumbnail(url=member.display_avatar.url)
 
         await ctx.send(embed=embed)
+        return
 
     except discord.Forbidden:
         await ctx.send("❌ Je n’ai pas la permission de bannir ce membre.")
+        return
 
     except Exception as e:
         await ctx.send(f"❌ Erreur lors du bannissement : {e}")
+        return
 
 
 # ===== COMMANDE UNBAN =====
@@ -255,14 +268,6 @@ async def unban_member(ctx, *, identifiant: str):
             return
 
     await ctx.send("❌ Aucun utilisateur trouvé avec ce nom ou cet ID.")
-
-
-# ===== ON MESSAGE POUR TRAITER COMMANDES =====
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-    await bot.process_commands(message)
 
 
 # ===== LANCEMENT DU BOT =====
