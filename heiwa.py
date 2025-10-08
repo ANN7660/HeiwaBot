@@ -52,14 +52,14 @@ async def on_member_join(member):
 
     if welcome_channel:
         # Message simple sans embed
-        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **lay** !")
+        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **Heiwa** !")
     else:
         print(f"⚠️ Aucun salon de bienvenue trouvé (ID configuré: {WELCOME_CHANNEL_ID})")
     
     # MP de bienvenue personnalisé
     try:
         dm_embed = discord.Embed(
-            title="🎉 Bienvenue sur lay !",
+            title="🎉 Bienvenue sur heiwa !",
             description=f"""
             Salut {member.mention} ! 👋
             
@@ -599,5 +599,6 @@ async def on_command_error(ctx, error):
 if __name__ == "__main__":
     keep_alive()  # Démarre le serveur web
     bot.run(os.environ['BOT_TOKEN'])
+
 
 
