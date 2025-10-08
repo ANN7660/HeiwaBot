@@ -7,7 +7,7 @@ from keep_alive import keep_alive
 
 # ===== CONFIGURATION DES SALONS =====
 # Remplace ces IDs par ceux de tes salons Discord
-WELCOME_CHANNEL_ID = 1423555370948886581  # ID du salon de bienvenue
+WELCOME_CHANNEL_ID = 1234567890123456789  # ID du salon de bienvenue
 LEAVE_CHANNEL_ID = 9876543210987654321    # ID du salon des départs
 
 # Configuration du bot
@@ -52,7 +52,7 @@ async def on_member_join(member):
 
     if welcome_channel:
         # Message simple sans embed
-        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **Heiwa** !")
+        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **lay** !")
     else:
         print(f"⚠️ Aucun salon de bienvenue trouvé (ID configuré: {WELCOME_CHANNEL_ID})")
     
@@ -89,41 +89,7 @@ async def on_member_join(member):
     except Exception as e:
         print(f"❌ Erreur lors de l'envoi du MP à {member.display_name}: {e}")
 
-# Message de départ avec ID
-@bot.event
-async def on_member_remove(member):
-    # Essaie d'abord avec l'ID configuré
-    leave_channel = bot.get_channel(LEAVE_CHANNEL_ID)
-    
-    # Si pas trouvé, utilise l'ancien système de recherche par nom
-    if not leave_channel:
-        leave_channels = ['départs', 'général', 'leave', 'general']
-        for channel_name in leave_channels:
-            leave_channel = discord.utils.get(member.guild.channels, name=channel_name)
-            if leave_channel:
-                break
-        
-        # Si toujours pas trouvé, utilise le salon système
-        if not leave_channel:
-            leave_channel = member.guild.system_channel
-
-    if leave_channel:
-        embed = discord.Embed(
-            title="👋 Au revoir!",
-            description=f"**{member.display_name}** a quitté le serveur",
-            color=discord.Color.red(),
-            timestamp=datetime.now()
-        )
-        embed.set_thumbnail(url=member.display_avatar.url)
-        embed.add_field(name="📅 Avait rejoint le", 
-                       value=member.joined_at.strftime("%d/%m/%Y") if member.joined_at else "Inconnu", 
-                       inline=True)
-        embed.add_field(name="👥 Membres restants", value=len(member.guild.members), inline=True)
-        embed.set_footer(text=f"ID: {member.id}")
-
-        await leave_channel.send(embed=embed)
-    else:
-        print(f"⚠️ Aucun salon des départs trouvé (ID configuré: {LEAVE_CHANNEL_ID})")
+# Message de départ désactivé
 
 # ===== COMMANDES POUR CONFIGURER LES SALONS =====
 
@@ -633,4 +599,5 @@ async def on_command_error(ctx, error):
 if __name__ == "__main__":
     keep_alive()  # Démarre le serveur web
     bot.run(os.environ['BOT_TOKEN'])
+
 
