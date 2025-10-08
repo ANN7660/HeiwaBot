@@ -3,6 +3,7 @@ from discord.ext import commands
 import asyncio
 from datetime import datetime
 import os
+import sys
 
 # ===== CONFIGURATION DES SALONS =====
 WELCOME_CHANNEL_ID = 1425082379768303649
@@ -15,6 +16,27 @@ intents.guilds = True
 intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
+
+# ===== PROTECTION CONTRE INSTANCES MULTIPLES =====
+processed_commands = {}  # Cache des commandes récentes
+
+def is_duplicate_command(ctx):
+    """Vérifie si la commande a déjà été traitée récemment"""
+    key = f"{ctx.message.id}_{ctx.command.name}"
+    current_time = datetime.now().timestamp()
+    
+    # Nettoyage du cache (supprime les entrées > 5 secondes)
+    to_remove = [k for k, v in processed_commands.items() if current_time - v > 5]
+    for k in to_remove:
+        del processed_commands[k]
+    
+    # Vérifie si déjà traité
+    if key in processed_commands:
+        return True
+    
+    processed_commands[key] = current_time
+    return False
+
 
 # ===== FONCTION POUR AFFICHER L'URL =====
 def get_repl_url():
@@ -38,13 +60,13 @@ def get_repl_url():
 @bot.event
 async def on_ready():
     print(f'🤖 {bot.user} est connecté et prêt!')
+    print(f'📊 Instance ID: {id(bot)}')  # Debug pour voir les instances
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name="le serveur 👀"),
         status=discord.Status.online
     )
 
 
-# AJOUT : Empêche le bot de répondre à ses propres messages
 @bot.event
 async def on_message(message):
     # Ignore les messages du bot lui-même
@@ -55,9 +77,21 @@ async def on_message(message):
     await bot.process_commands(message)
 
 
-# AJOUT : Gestion des erreurs pour éviter les réponses multiples
+@bot.event
+async def on_command(ctx):
+    """Hook appelé avant chaque commande"""
+    if is_duplicate_command(ctx):
+        print(f"⚠️ Commande dupliquée détectée: {ctx.command.name}")
+        # Stop l'exécution de la commande
+        raise commands.CommandError("Duplicate")
+
+
 @bot.event
 async def on_command_error(ctx, error):
+    # Ignore les doublons silencieusement
+    if isinstance(error, commands.CommandError) and str(error) == "Duplicate":
+        return
+    
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Tu n'as pas les permissions nécessaires.")
     elif isinstance(error, commands.MemberNotFound):
@@ -77,23 +111,20 @@ async def on_member_join(member):
         await channel.send(f"Bienvenue sur Heiwa, {member.mention} ! 🎉")
 
 
-@bot.event
-async def on_member_remove(member):
-    channel = bot.get_channel(LEAVE_CHANNEL_ID)
-    if channel:
-        embed = discord.Embed(
-            title="Au revoir 👋",
-            description=f"{member.name} a quitté le serveur.",
-            color=discord.Color.red(),
-            timestamp=datetime.now()
-        )
-        await channel.send(embed=embed)
+# Événement de départ retiré
 
 
 # ===== COMMANDES =====
 @bot.command(name="ping")
 async def ping(ctx):
-    await ctx.send(f"Pong ! 🏓 Latence : {round(bot.latency * 1000)}ms")
+    embed = discord.Embed(
+        title="🏓 Pong !",
+        description=f"Latence : **{round(bot.latency * 1000)}ms**",
+        color=discord.Color.green(),
+        timestamp=datetime.now()
+    )
+    embed.set_footer(text=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
+    await ctx.send(embed=embed)
 
 
 @bot.command(name="help")
@@ -116,7 +147,12 @@ async def custom_help(ctx):
 @commands.has_permissions(manage_roles=True)
 async def mute_member(ctx, member: discord.Member, duration: int = 10, *, raison="Aucune raison fournie"):
     if member == ctx.author:
-        return await ctx.send("❌ Tu ne peux pas te mute toi-même !")
+        embed = discord.Embed(
+            title="❌ Erreur",
+            description="Tu ne peux pas te mute toi-même !",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
 
     muted_role = discord.utils.get(ctx.guild.roles, name="Muted")
     if not muted_role:
@@ -125,11 +161,28 @@ async def mute_member(ctx, member: discord.Member, duration: int = 10, *, raison
             await channel.set_permissions(muted_role, speak=False, send_messages=False)
 
     await member.add_roles(muted_role, reason=raison)
-    await ctx.send(f"🔇 {member.mention} est maintenant mute pour {duration} minutes.")
+    
+    embed = discord.Embed(
+        title="🔇 Membre mute",
+        description=f"{member.mention} a été mute",
+        color=discord.Color.orange(),
+        timestamp=datetime.now()
+    )
+    embed.add_field(name="Durée", value=f"{duration} minutes", inline=True)
+    embed.add_field(name="Raison", value=raison, inline=True)
+    embed.set_footer(text=f"Par {ctx.author.name}", icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
+    await ctx.send(embed=embed)
 
     await asyncio.sleep(duration * 60)
     await member.remove_roles(muted_role, reason="Fin du mute automatique")
-    await ctx.send(f"🔊 {member.mention} a été démuté automatiquement.")
+    
+    embed_unmute = discord.Embed(
+        title="🔊 Démute automatique",
+        description=f"{member.mention} a été démuté automatiquement",
+        color=discord.Color.green(),
+        timestamp=datetime.now()
+    )
+    await ctx.send(embed=embed_unmute)
 
 
 @bot.command(name='unmute')
@@ -138,9 +191,21 @@ async def unmute_member(ctx, member: discord.Member):
     muted_role = discord.utils.get(ctx.guild.roles, name="Muted")
     if muted_role in member.roles:
         await member.remove_roles(muted_role, reason="Unmute manuel")
-        await ctx.send(f"🔊 {member.mention} a été démuté.")
+        embed = discord.Embed(
+            title="🔊 Membre démuté",
+            description=f"{member.mention} a été démuté avec succès",
+            color=discord.Color.green(),
+            timestamp=datetime.now()
+        )
+        embed.set_footer(text=f"Par {ctx.author.name}", icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
+        await ctx.send(embed=embed)
     else:
-        await ctx.send("❌ Ce membre n'est pas muté.")
+        embed = discord.Embed(
+            title="❌ Erreur",
+            description="Ce membre n'est pas muté.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
 
 
 # ===== BAN / UNBAN =====
@@ -148,9 +213,23 @@ async def unmute_member(ctx, member: discord.Member):
 @commands.has_permissions(ban_members=True)
 async def ban_member(ctx, member: discord.Member, *, raison="Aucune raison fournie"):
     if member == ctx.author:
-        return await ctx.send("❌ Tu ne peux pas te bannir toi-même !")
+        embed = discord.Embed(
+            title="❌ Erreur",
+            description="Tu ne peux pas te bannir toi-même !",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+    
     await member.ban(reason=raison)
-    await ctx.send(f"🚫 {member.mention} a été banni.\nRaison : {raison}")
+    embed = discord.Embed(
+        title="🚫 Membre banni",
+        description=f"{member.mention} a été banni du serveur",
+        color=discord.Color.dark_red(),
+        timestamp=datetime.now()
+    )
+    embed.add_field(name="Raison", value=raison, inline=False)
+    embed.set_footer(text=f"Par {ctx.author.name}", icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
+    await ctx.send(embed=embed)
 
 
 @bot.command(name='unban')
@@ -160,26 +239,47 @@ async def unban_member(ctx, *, identifiant: str):
     for ban_entry in bans:
         if ban_entry.user.name.lower() == identifiant.lower() or str(ban_entry.user.id) == identifiant:
             await ctx.guild.unban(ban_entry.user)
-            await ctx.send(f"✅ {ban_entry.user} a été débanni.")
+            embed = discord.Embed(
+                title="✅ Membre débanni",
+                description=f"**{ban_entry.user}** a été débanni avec succès",
+                color=discord.Color.green(),
+                timestamp=datetime.now()
+            )
+            embed.set_footer(text=f"Par {ctx.author.name}", icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
+            await ctx.send(embed=embed)
             return
-    await ctx.send("❌ Aucun utilisateur trouvé.")
+    
+    embed = discord.Embed(
+        title="❌ Erreur",
+        description="Aucun utilisateur trouvé avec cet identifiant.",
+        color=discord.Color.red()
+    )
+    await ctx.send(embed=embed)
 
 
 # ===== LANCEMENT =====
 if __name__ == "__main__":
     try:
-        from keep_alive import keep_alive
-        keep_alive()
-        import time
-        time.sleep(2)
+        # Pour Render, pas besoin de keep_alive
+        # Mais garde-le si tu l'utilises encore
+        try:
+            from keep_alive import keep_alive
+            keep_alive()
+            import time
+            time.sleep(2)
+        except ImportError:
+            print("ℹ️ keep_alive non disponible (normal sur Render)")
+        
         get_repl_url()
 
         token = os.environ.get('BOT_TOKEN')
         if not token:
             print("❌ BOT_TOKEN non trouvé.")
-            exit()
+            sys.exit(1)
 
+        print("🚀 Démarrage du bot...")
         bot.run(token)
 
     except Exception as e:
         print(f"❌ ERREUR inattendue: {e}")
+        sys.exit(1)
