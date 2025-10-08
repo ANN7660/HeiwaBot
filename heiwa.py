@@ -14,7 +14,7 @@ intents.message_content = True
 intents.guilds = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)  # Désactive help intégré
+bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 # ===== FONCTION POUR AFFICHER L'URL =====
 def get_repl_url():
@@ -42,6 +42,32 @@ async def on_ready():
         activity=discord.Activity(type=discord.ActivityType.watching, name="le serveur 👀"),
         status=discord.Status.online
     )
+
+
+# AJOUT : Empêche le bot de répondre à ses propres messages
+@bot.event
+async def on_message(message):
+    # Ignore les messages du bot lui-même
+    if message.author == bot.user:
+        return
+    
+    # Traite les commandes normalement
+    await bot.process_commands(message)
+
+
+# AJOUT : Gestion des erreurs pour éviter les réponses multiples
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("❌ Tu n'as pas les permissions nécessaires.")
+    elif isinstance(error, commands.MemberNotFound):
+        await ctx.send("❌ Membre introuvable.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("❌ Il manque des arguments. Utilise `!help` pour voir la syntaxe.")
+    elif isinstance(error, commands.CommandNotFound):
+        pass  # Ignore les commandes inexistantes silencieusement
+    else:
+        print(f"Erreur non gérée: {error}")
 
 
 @bot.event
@@ -114,7 +140,7 @@ async def unmute_member(ctx, member: discord.Member):
         await member.remove_roles(muted_role, reason="Unmute manuel")
         await ctx.send(f"🔊 {member.mention} a été démuté.")
     else:
-        await ctx.send("❌ Ce membre n’est pas muté.")
+        await ctx.send("❌ Ce membre n'est pas muté.")
 
 
 # ===== BAN / UNBAN =====
