@@ -63,7 +63,7 @@ async def on_member_join(member):
             description=f"""
             Salut {member.mention} ! 👋
             
-            Bienvenue sur notre serveur **lay** ! On est ravis de t'accueillir dans notre communauté 🔥
+            Bienvenue sur notre serveur **heiwa** ! On est ravis de t'accueillir dans notre communauté 🔥
             
             **📝 Pour bien commencer :**
             • N'hésite pas à **parler** dans les salons
@@ -599,6 +599,7 @@ async def on_command_error(ctx, error):
 if __name__ == "__main__":
     keep_alive()  # Démarre le serveur web
     bot.run(os.environ['BOT_TOKEN'])
+
 
 
 
