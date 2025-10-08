@@ -6,7 +6,7 @@ import os
 import sys
 
 # ===== CONFIGURATION DES SALONS =====
-WELCOME_CHANNEL_ID = 1425082379768303649
+WELCOME_CHANNEL_ID = 1423555370948886581
 LEAVE_CHANNEL_ID = 1425083330251980840
 
 # ===== CONFIG BOT =====
@@ -283,3 +283,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ ERREUR inattendue: {e}")
         sys.exit(1)
+
