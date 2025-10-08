@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from keep_alive import keep_alive
 
@@ -457,7 +457,7 @@ async def mute_member(ctx, member: discord.Member, duration: int = 10, *, raison
 
     try:
         # Utilise le timeout Discord natif
-        timeout_duration = datetime.timedelta(minutes=duration)
+        timeout_duration = timedelta(minutes=duration)
         await member.timeout(timeout_duration, reason=f"Par {ctx.author} - {raison}")
 
         embed = discord.Embed(
