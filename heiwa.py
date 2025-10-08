@@ -7,7 +7,7 @@ from keep_alive import keep_alive
 
 # ===== CONFIGURATION DES SALONS =====
 # Remplace ces IDs par ceux de tes salons Discord
-WELCOME_CHANNEL_ID = 1234567890123456789  # ID du salon de bienvenue
+WELCOME_CHANNEL_ID = 1423555370948886581  # ID du salon de bienvenue
 LEAVE_CHANNEL_ID = 9876543210987654321    # ID du salon des départs
 
 # Configuration du bot
@@ -52,7 +52,7 @@ async def on_member_join(member):
 
     if welcome_channel:
         # Message simple sans embed
-        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **lay** !")
+        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **Heiwa** !")
     else:
         print(f"⚠️ Aucun salon de bienvenue trouvé (ID configuré: {WELCOME_CHANNEL_ID})")
     
@@ -633,3 +633,4 @@ async def on_command_error(ctx, error):
 if __name__ == "__main__":
     keep_alive()  # Démarre le serveur web
     bot.run(os.environ['BOT_TOKEN'])
+
