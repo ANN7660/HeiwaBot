@@ -14,8 +14,8 @@ intents.message_content = True
 intents.guilds = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='!', intents=intents)
-
+# Désactive la commande help intégrée
+bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
 # ===== FONCTION POUR AFFICHER L'URL =====
 def get_repl_url():
@@ -29,80 +29,42 @@ def get_repl_url():
     if repl_name and repl_owner:
         url = f"https://{repl_name}.{repl_owner}.repl.co"
         print(f"✅ URL de votre Repl: {url}")
-        print(f"📋 Copiez cette URL dans UptimeRobot pour maintenir le bot actif!")
-        print(f"🔧 Nom du Repl: {repl_name}")
-        print(f"👤 Propriétaire: {repl_owner}")
     else:
         print("❌ Impossible de déterminer l'URL automatiquement")
-        print("💡 Format manuel: https://nom-du-repl.nom-utilisateur.repl.co")
-        print("🔍 Vérifiez dans l'onglet 'Webview' de Replit")
-
     print("=" * 60)
     return url if repl_name and repl_owner else None
-
 
 # ===== ÉVÉNEMENTS =====
 @bot.event
 async def on_ready():
     print(f'🤖 {bot.user} est connecté et prêt!')
-    print(f'📊 Serveurs: {len(bot.guilds)}')
-    print(f'👥 Utilisateurs: {len(set(bot.get_all_members()))}')
-    print('=' * 50)
-
-    await bot.change_presence(
-        activity=discord.Activity(type=discord.ActivityType.watching, name="le serveur 👀"),
-        status=discord.Status.online
-    )
-
-
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-    await bot.process_commands(message)
-
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="le serveur 👀"), status=discord.Status.online)
 
 @bot.event
 async def on_member_join(member):
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
     if channel:
-        embed = discord.Embed(
-            title="🎉 Bienvenue !",
-            description=f"Bienvenue sur **Heiwa**, {member.mention} ! 🎊",
-            color=discord.Color.green(),
-            timestamp=datetime.now()
-        )
+        embed = discord.Embed(title="🎉 Bienvenue !", description=f"Bienvenue sur **Heiwa**, {member.mention} !", color=discord.Color.green(), timestamp=datetime.now())
         embed.set_thumbnail(url=member.display_avatar.url)
         await channel.send(embed=embed)
-
 
 @bot.event
 async def on_member_remove(member):
     channel = bot.get_channel(LEAVE_CHANNEL_ID)
     if channel:
-        embed = discord.Embed(
-            title="👋 Au revoir",
-            description=f"{member.display_name} nous a quittés...",
-            color=discord.Color.red(),
-            timestamp=datetime.now()
-        )
+        embed = discord.Embed(title="😢 Au revoir", description=f"{member.display_name} nous a quitté...", color=discord.Color.red(), timestamp=datetime.now())
         embed.set_thumbnail(url=member.display_avatar.url)
         await channel.send(embed=embed)
 
-
-# ===== COMMANDES =====
+# ===== COMMANDE PING =====
 @bot.command(name="ping")
 async def ping(ctx):
-    await ctx.send(f"🏓 Pong ! Latence : {round(bot.latency * 1000)} ms")
+    await ctx.send(f"🏓 Pong ! Latence : {round(bot.latency * 1000)}ms")
 
-
+# ===== COMMANDE HELP =====
 @bot.command(name="help")
 async def help_command(ctx):
-    embed = discord.Embed(
-        title="📜 Commandes disponibles",
-        description="Voici les commandes disponibles :",
-        color=discord.Color.blurple()
-    )
+    embed = discord.Embed(title="📜 Commandes disponibles", description="Voici les commandes disponibles :", color=discord.Color.blurple())
     embed.add_field(name="!ping", value="Test la latence du bot", inline=False)
     embed.add_field(name="!mute @membre durée raison", value="Mute un membre", inline=False)
     embed.add_field(name="!unmute @membre", value="Démute un membre", inline=False)
@@ -110,70 +72,32 @@ async def help_command(ctx):
     embed.add_field(name="!unban identifiant", value="Déban un membre", inline=False)
     await ctx.send(embed=embed)
 
-
 # ===== COMMANDE MUTE =====
 @bot.command(name='mute')
 @commands.has_permissions(manage_roles=True)
 async def mute_member(ctx, member: discord.Member, duration: int = 10, *, raison="Aucune raison fournie"):
     if member == ctx.author:
         return await ctx.send("❌ Tu ne peux pas te mute toi-même !")
-
     if member.top_role >= ctx.author.top_role:
         return await ctx.send("❌ Tu ne peux pas mute quelqu’un avec un rôle supérieur ou égal au tien !")
-
     muted_role = discord.utils.get(ctx.guild.roles, name="Muted")
     if not muted_role:
-        try:
-            muted_role = await ctx.guild.create_role(
-                name="Muted",
-                color=discord.Color.dark_gray(),
-                reason="Rôle pour les membres mutés"
-            )
-            for channel in ctx.guild.channels:
-                await channel.set_permissions(
-                    muted_role,
-                    speak=False,
-                    send_messages=False,
-                    add_reactions=False,
-                    send_messages_in_threads=False
-                )
-        except Exception as e:
-            return await ctx.send(f"❌ Impossible de créer le rôle Muted: {e}")
-
+        muted_role = await ctx.guild.create_role(name="Muted", color=discord.Color.dark_gray())
+        for channel in ctx.guild.channels:
+            await channel.set_permissions(muted_role, speak=False, send_messages=False, add_reactions=False)
     if muted_role in member.roles:
         return await ctx.send("❌ Ce membre est déjà muté !")
-
-    try:
-        await member.add_roles(muted_role, reason=f"Par {ctx.author} - {raison}")
-
-        embed = discord.Embed(
-            title="🔇 Membre muté",
-            description=f"**{member.display_name}** a été muté pour {duration} minutes",
-            color=discord.Color.orange(),
-            timestamp=datetime.now()
-        )
-        embed.add_field(name="📝 Raison", value=raison, inline=False)
-        embed.add_field(name="👮 Par", value=ctx.author.mention, inline=False)
-        embed.set_thumbnail(url=member.display_avatar.url)
-
-        await ctx.send(embed=embed)
-
-        await asyncio.sleep(duration * 60)
-        if muted_role in member.roles:
-            await member.remove_roles(muted_role, reason="Fin du mute automatique")
-
-            unmute_embed = discord.Embed(
-                title="🔊 Démute automatique",
-                description=f"**{member.display_name}** a été démuté",
-                color=discord.Color.green()
-            )
-            await ctx.send(embed=unmute_embed)
-        return
-
-    except Exception as e:
-        await ctx.send(f"❌ Erreur lors du mute: {e}")
-        return
-
+    await member.add_roles(muted_role, reason=f"Par {ctx.author} - {raison}")
+    embed = discord.Embed(title="🔇 Membre muté", description=f"**{member.display_name}** a été muté pour {duration} minutes", color=discord.Color.orange(), timestamp=datetime.now())
+    embed.add_field(name="📝 Raison", value=raison, inline=False)
+    embed.add_field(name="👮 Par", value=ctx.author.mention, inline=False)
+    embed.set_thumbnail(url=member.display_avatar.url)
+    await ctx.send(embed=embed)
+    await asyncio.sleep(duration * 60)
+    if muted_role in member.roles:
+        await member.remove_roles(muted_role, reason="Fin du mute automatique")
+        unmute_embed = discord.Embed(title="🔊 Démute automatique", description=f"**{member.display_name}** a été démuté", color=discord.Color.green())
+        await ctx.send(embed=unmute_embed)
 
 # ===== COMMANDE UNMUTE =====
 @bot.command(name='unmute')
@@ -182,21 +106,11 @@ async def unmute_member(ctx, member: discord.Member):
     muted_role = discord.utils.get(ctx.guild.roles, name="Muted")
     if not muted_role or muted_role not in member.roles:
         return await ctx.send("❌ Ce membre n’est pas muté !")
-
-    try:
-        await member.remove_roles(muted_role, reason=f"Par {ctx.author}")
-        embed = discord.Embed(
-            title="🔊 Membre démuté",
-            description=f"**{member.display_name}** a été démuté avec succès !",
-            color=discord.Color.green(),
-            timestamp=datetime.now()
-        )
-        embed.add_field(name="👮 Par", value=ctx.author.mention, inline=False)
-        embed.set_thumbnail(url=member.display_avatar.url)
-        await ctx.send(embed=embed)
-    except Exception as e:
-        await ctx.send(f"❌ Erreur lors du démutage: {e}")
-
+    await member.remove_roles(muted_role, reason=f"Par {ctx.author}")
+    embed = discord.Embed(title="🔊 Membre démuté", description=f"**{member.display_name}** a été démuté avec succès !", color=discord.Color.green(), timestamp=datetime.now())
+    embed.add_field(name="👮 Par", value=ctx.author.mention, inline=False)
+    embed.set_thumbnail(url=member.display_avatar.url)
+    await ctx.send(embed=embed)
 
 # ===== COMMANDE BAN =====
 @bot.command(name='ban')
@@ -204,47 +118,24 @@ async def unmute_member(ctx, member: discord.Member):
 async def ban_member(ctx, member: discord.Member, *, raison="Aucune raison fournie"):
     if member == ctx.author:
         return await ctx.send("❌ Tu ne peux pas te bannir toi-même !")
-
     if member.top_role >= ctx.author.top_role:
         return await ctx.send("❌ Tu ne peux pas bannir quelqu’un avec un rôle supérieur ou égal au tien !")
-
     try:
         try:
-            dm_embed = discord.Embed(
-                title="🚫 Tu as été banni !",
-                description=f"Serveur : **{ctx.guild.name}**",
-                color=discord.Color.red(),
-                timestamp=datetime.now()
-            )
+            dm_embed = discord.Embed(title="🚫 Tu as été banni !", description=f"Serveur : **{ctx.guild.name}**", color=discord.Color.red(), timestamp=datetime.now())
             dm_embed.add_field(name="📝 Raison :", value=raison, inline=False)
             dm_embed.add_field(name="👮 Par :", value=ctx.author.name, inline=False)
             await member.send(embed=dm_embed)
         except:
             pass
-
         await member.ban(reason=f"{ctx.author} - {raison}")
-
-        embed = discord.Embed(
-            title="🚫 Membre banni",
-            description=f"**{member.display_name}** a été banni du serveur.",
-            color=discord.Color.red(),
-            timestamp=datetime.now()
-        )
+        embed = discord.Embed(title="🚫 Membre banni", description=f"**{member.display_name}** a été banni du serveur.", color=discord.Color.red(), timestamp=datetime.now())
         embed.add_field(name="📝 Raison", value=raison, inline=False)
         embed.add_field(name="👮 Par", value=ctx.author.mention, inline=False)
         embed.set_thumbnail(url=member.display_avatar.url)
-
         await ctx.send(embed=embed)
-        return
-
     except discord.Forbidden:
         await ctx.send("❌ Je n’ai pas la permission de bannir ce membre.")
-        return
-
-    except Exception as e:
-        await ctx.send(f"❌ Erreur lors du bannissement : {e}")
-        return
-
 
 # ===== COMMANDE UNBAN =====
 @bot.command(name='unban')
@@ -252,56 +143,30 @@ async def ban_member(ctx, member: discord.Member, *, raison="Aucune raison fourn
 async def unban_member(ctx, *, identifiant: str):
     bans = await ctx.guild.bans()
     identifiant = identifiant.lower()
-
     for ban_entry in bans:
         user = ban_entry.user
         if user.name.lower() == identifiant or str(user.id) == identifiant:
             await ctx.guild.unban(user, reason=f"Par {ctx.author}")
-            embed = discord.Embed(
-                title="✅ Membre débanni",
-                description=f"**{user.name}** a été débanni avec succès !",
-                color=discord.Color.green(),
-                timestamp=datetime.now()
-            )
+            embed = discord.Embed(title="✅ Membre débanni", description=f"**{user.name}** a été débanni avec succès !", color=discord.Color.green(), timestamp=datetime.now())
             embed.add_field(name="👮 Par", value=ctx.author.mention, inline=False)
             await ctx.send(embed=embed)
             return
-
     await ctx.send("❌ Aucun utilisateur trouvé avec ce nom ou cet ID.")
-
 
 # ===== LANCEMENT DU BOT =====
 if __name__ == "__main__":
     print("🚀 Démarrage du bot Discord...")
-
     try:
         from keep_alive import keep_alive
         keep_alive()
         import time
         time.sleep(2)
-
         get_repl_url()
-
         token = os.environ.get('BOT_TOKEN')
         if not token:
             print("❌ ERREUR: BOT_TOKEN non trouvé dans les secrets!")
             exit()
-        else:
-            print(f"✅ Token Discord trouvé: {token[:10]}...{token[-5:]}")
-
-        print("🔄 Tentative de connexion du bot...")
+        print("✅ Token Discord trouvé")
         bot.run(token)
-
-    except discord.LoginFailure:
-        print("❌ ERREUR: Token Discord invalide!")
-
-    except discord.PrivilegedIntentsRequired:
-        print("❌ ERREUR: Intents privilégiés requis!")
-
-    except discord.HTTPException as e:
-        print(f"❌ ERREUR HTTP Discord: {e}")
-
     except Exception as e:
         print(f"❌ ERREUR inattendue: {e}")
-        import traceback
-        traceback.print_exc()
