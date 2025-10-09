@@ -7,7 +7,7 @@ from keep_alive import keep_alive
 
 # ===== CONFIGURATION DES SALONS =====
 # Remplace ces IDs par ceux de tes salons Discord
-WELCOME_CHANNEL_ID = 1384523345705570487  # ID du salon de bienvenue
+WELCOME_CHANNEL_ID = 1234567890123456789  # ID du salon de bienvenue
 LEAVE_CHANNEL_ID = 9876543210987654321    # ID du salon des départs
 
 # Configuration du bot
@@ -16,7 +16,7 @@ intents.message_content = True
 intents.guilds = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='+', intents=intents)
 
 # Événement de connexion
 @bot.event
@@ -28,8 +28,8 @@ async def on_ready():
 
     # Statut du bot
     await bot.change_presence(
-        activity=discord.Game(name="HK je t'aime 💖"),
-        status=discord.Status.dnd
+        activity=discord.Activity(type=discord.ActivityType.watching, name="le serveur 👀"),
+        status=discord.Status.online
     )
 
 # Message de bienvenue avec ID
@@ -52,18 +52,18 @@ async def on_member_join(member):
 
     if welcome_channel:
         # Message simple sans embed
-        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **Lay** !")
+        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **lay** !")
     else:
         print(f"⚠️ Aucun salon de bienvenue trouvé (ID configuré: {WELCOME_CHANNEL_ID})")
     
     # MP de bienvenue personnalisé
     try:
         dm_embed = discord.Embed(
-            title="🎉 Bienvenue sur Lay !",
+            title="🎉 Bienvenue sur lay !",
             description=f"""
             Salut {member.mention} ! 👋
             
-            Bienvenue sur notre serveur **Lay** ! On est ravis de t'accueillir dans notre communauté 🔥
+            Bienvenue sur notre serveur **lay** ! On est ravis de t'accueillir dans notre communauté 🔥
             
             **📝 Pour bien commencer :**
             • N'hésite pas à **parler** dans les salons
@@ -537,18 +537,18 @@ async def help_moderation(ctx):
     )
 
     commands_list = [
-        ("🔨 `!ban @membre [raison]`", "Bannit un membre du serveur"),
-        ("🔇 `!mute @membre [minutes] [raison]`", "Mute temporairement un membre"),
-        ("🔊 `!unmute @membre`", "Démute un membre"),
-        ("🗑️ `!delall [nombre]`", "Supprime tous les messages (max 1000)"),
-        ("🏓 `!ping`", "Teste la latence du bot"),
+        ("🔨 `+ban @membre [raison]`", "Bannit un membre du serveur"),
+        ("🔇 `+mute @membre [minutes] [raison]`", "Mute temporairement un membre"),
+        ("🔊 `+unmute @membre`", "Démute un membre"),
+        ("🗑️ `+delall [nombre]`", "Supprime tous les messages (max 1000)"),
+        ("🏓 `+ping`", "Teste la latence du bot"),
         ("⚙️ **Configuration des salons:**", ""),
-        ("🏠 `!set_welcome #salon`", "Configure le salon de bienvenue"),
-        ("👋 `!set_leave #salon`", "Configure le salon des départs"),
-        ("📋 `!channels_config`", "Affiche la configuration actuelle"),
+        ("🏠 `+set_welcome #salon`", "Configure le salon de bienvenue"),
+        ("👋 `+set_leave #salon`", "Configure le salon des départs"),
+        ("📋 `+channels_config`", "Affiche la configuration actuelle"),
         ("📩 **Messages privés:**", ""),
-        ("📤 `!dmall <message>`", "Envoie un MP à tous les membres"),
-        ("🎭 `!dmrole @role <message>`", "Envoie un MP aux membres d'un rôle")
+        ("📤 `+dmall <message>`", "Envoie un MP à tous les membres"),
+        ("🎭 `+dmrole @role <message>`", "Envoie un MP aux membres d'un rôle")
     ]
 
     for cmd, desc in commands_list:
@@ -589,7 +589,7 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.MemberNotFound):
         await ctx.send("❌ Membre introuvable!")
     elif isinstance(error, commands.BadArgument):
-        await ctx.send("❌ Arguments invalides! Utilise `!help_mod`")
+        await ctx.send("❌ Arguments invalides! Utilise `+help_mod`")
     elif isinstance(error, commands.CommandNotFound):
         return
     else:
