@@ -7,7 +7,7 @@ from keep_alive import keep_alive
 
 # ===== CONFIGURATION DES SALONS =====
 # Remplace ces IDs par ceux de tes salons Discord
-WELCOME_CHANNEL_ID = 1234567890123456789  # ID du salon de bienvenue
+WELCOME_CHANNEL_ID = 1384523345705570487  # ID du salon de bienvenue
 LEAVE_CHANNEL_ID = 9876543210987654321    # ID du salon des départs
 
 # Configuration du bot
@@ -28,8 +28,8 @@ async def on_ready():
 
     # Statut du bot
     await bot.change_presence(
-        activity=discord.Activity(type=discord.ActivityType.watching, name="le serveur 👀"),
-        status=discord.Status.online
+        activity=discord.Game(name="HK je t'aime 💖"),
+        status=discord.Status.dnd
     )
 
 # Message de bienvenue avec ID
@@ -52,18 +52,18 @@ async def on_member_join(member):
 
     if welcome_channel:
         # Message simple sans embed
-        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **Heiwa** !")
+        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **Lay** !")
     else:
         print(f"⚠️ Aucun salon de bienvenue trouvé (ID configuré: {WELCOME_CHANNEL_ID})")
     
     # MP de bienvenue personnalisé
     try:
         dm_embed = discord.Embed(
-            title="🎉 Bienvenue sur heiwa !",
+            title="🎉 Bienvenue sur Lay !",
             description=f"""
             Salut {member.mention} ! 👋
             
-            Bienvenue sur notre serveur **heiwa** ! On est ravis de t'accueillir dans notre communauté 🔥
+            Bienvenue sur notre serveur **Lay** ! On est ravis de t'accueillir dans notre communauté 🔥
             
             **📝 Pour bien commencer :**
             • N'hésite pas à **parler** dans les salons
@@ -599,7 +599,3 @@ async def on_command_error(ctx, error):
 if __name__ == "__main__":
     keep_alive()  # Démarre le serveur web
     bot.run(os.environ['BOT_TOKEN'])
-
-
-
-
