@@ -53,7 +53,8 @@ async def on_member_join(member):
     if welcome_channel:
         # Message simple sans embed avec nombre de membres
         member_count = len(member.guild.members)
-        await welcome_channel.send(f"Bienvenue {member.mention} profite bien sur **Heiwa** !\n\nNous sommes actuellement **{member_count}** membres sur le serveur ! 🎉")
+        await welcome_channel.send(f"message = (f":whitearrow: Bienvenue {member.mention} profite bien sur **Heiwa** !\n\n"
+    f":whitearrow: Nous sommes actuellement **{member_count}** membres sur le serveur ! 🎉")
     else:
         print(f"⚠️ Aucun salon de bienvenue trouvé (ID configuré: {WELCOME_CHANNEL_ID})")
     
@@ -600,3 +601,4 @@ async def on_command_error(ctx, error):
 if __name__ == "__main__":
     keep_alive()  # Démarre le serveur web
     bot.run(os.environ['BOT_TOKEN'])
+
