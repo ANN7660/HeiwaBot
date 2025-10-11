@@ -49,16 +49,9 @@ async def on_member_join(member):
     if welcome_channel:
         member_count = len(member.guild.members)
         
-        embed = discord.Embed(
-            description=f"### 👋 Bienvenue {member.mention} !\n"
-                       f"🎉 Tu es notre **{member_count}ème** membre !",
-            color=discord.Color.green(),
-            timestamp=datetime.now()
-        )
-        embed.set_thumbnail(url=member.display_avatar.url)
-        embed.set_footer(text=f"Membre #{member_count}", icon_url=member.guild.icon.url if member.guild.icon else None)
+        message = f"<a:whitearrow:1426212535262248960> Bienvenue {member.mention} !\n<a:whitearrow:1426212535262248960> Tu es notre **{member_count}ème** membre !"
         
-        await welcome_channel.send(embed=embed)
+        await welcome_channel.send(message)
 
     # MP de bienvenue
     try:
@@ -576,16 +569,17 @@ async def user_info(ctx, membre: discord.Member = None):
 @bot.command(name='love', aliases=['lc', 'lovecalc'])
 async def love_calculator(ctx, personne1: discord.Member = None, personne2: discord.Member = None):
     """Calcule le taux d'amour entre deux personnes"""
+    import random
     
     if personne1 is None and personne2 is None:
+        # Mode aléatoire : choisit 2 membres au hasard
         members = [m for m in ctx.guild.members if not m.bot]
         if len(members) < 2:
             return await ctx.send("❌ Pas assez de membres !")
-        
-        import random
         personne1, personne2 = random.sample(members, 2)
     
     elif personne2 is None:
+        # Un seul membre mentionné : calcul avec l'auteur
         personne2 = personne1
         personne1 = ctx.author
     
@@ -668,7 +662,7 @@ async def help_command(ctx):
     
     embed.add_field(
         name="🎮 Fun",
-        value="`+love`",
+        value="`+love` `+lc` `+lovecalc`",
         inline=False
     )
 
