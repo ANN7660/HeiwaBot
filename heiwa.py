@@ -4,6 +4,9 @@ import asyncio
 from datetime import datetime, timedelta
 import os
 from keep_alive import keep_alive
+from PIL import Image, ImageDraw, ImageFont
+import aiohttp
+from io import BytesIO
 
 # ===== CONFIGURATION =====
 WELCOME_CHANNEL_ID = 1384523345705570487
@@ -567,62 +570,133 @@ async def user_info(ctx, membre: discord.Member = None):
     await ctx.send(embed=embed)
 
 @bot.command(name='love', aliases=['lc', 'lovecalc'])
-async def love_calculator(ctx, personne1: discord.Member = None, personne2: discord.Member = None):
-    """Calcule le taux d'amour entre deux personnes"""
+async def love_calculator(ctx, option: str = None, personne2: discord.Member = None):
+    """Calcule le taux d'amour entre toi et quelqu'un"""
     import random
     
-    if personne1 is None and personne2 is None:
-        # Mode aléatoire : choisit 2 membres au hasard
-        members = [m for m in ctx.guild.members if not m.bot]
-        if len(members) < 2:
-            return await ctx.send("❌ Pas assez de membres !")
-        personne1, personne2 = random.sample(members, 2)
+    # Si aucune option, afficher le menu
+    if option is None:
+        menu_message = "💕 **Love Calculator**\nCalcule le taux d'amour entre deux personnes !\n\n📋 **Commandes**\n`+lc random` - Personne au hasard\n`+lc @membre` - Avec un membre spécifique"
+        return await ctx.send(menu_message)
     
-    elif personne2 is None:
-        # Un seul membre mentionné : calcul avec l'auteur
-        personne2 = personne1
-        personne1 = ctx.author
+    personne1 = ctx.author
+    
+    # Si option est "random"
+    if option.lower() == "random":
+        members = [m for m in ctx.guild.members if not m.bot and m != ctx.author]
+        if len(members) < 1:
+            return await ctx.send("❌ Pas assez de membres !")
+        personne2 = random.choice(members)
+    
+    # Si option est une mention (discord.Member)
+    else:
+        # Essayer de convertir l'option en Member
+        try:
+            personne2 = await commands.MemberConverter().convert(ctx, option)
+        except:
+            return await ctx.send("❌ Membre introuvable ! Utilise `+lc` pour voir les commandes.")
     
     import random
     seed = int(str(personne1.id) + str(personne2.id))
     random.seed(seed)
     love_percentage = random.randint(0, 100)
     
-    if love_percentage >= 80:
-        message = "💖 Match parfait !"
-        color = discord.Color.red()
+    # Définir la relation en fonction du pourcentage
+    if love_percentage >= 90:
+        message = "Amour fou ! 💘"
+        emoji = "💘"
+    elif love_percentage >= 80:
+        message = "Couple parfait ! 💖"
         emoji = "💖"
-    elif love_percentage >= 60:
-        message = "💕 Belle alchimie !"
-        color = discord.Color.magenta()
+    elif love_percentage >= 70:
+        message = "Très forte attirance ! 💕"
         emoji = "💕"
-    elif love_percentage >= 40:
-        message = "💗 Pas mal !"
-        color = discord.Color.pink()
+    elif love_percentage >= 60:
+        message = "Belle complicité ! 💗"
         emoji = "💗"
-    elif love_percentage >= 20:
-        message = "💙 Amitié possible"
-        color = discord.Color.blue()
+    elif love_percentage >= 50:
+        message = "Bonne entente ! 💓"
+        emoji = "💓"
+    elif love_percentage >= 40:
+        message = "Amitié possible ! 💙"
         emoji = "💙"
+    elif love_percentage >= 30:
+        message = "Relation cordiale ! 🤝"
+        emoji = "🤝"
+    elif love_percentage >= 20:
+        message = "Connaissance ! 👋"
+        emoji = "👋"
+    elif love_percentage >= 10:
+        message = "Pas vraiment de feeling... 😐"
+        emoji = "😐"
     else:
-        message = "💔 Incompatible..."
-        color = discord.Color.dark_gray()
+        message = "Totalement incompatible ! 💔"
         emoji = "💔"
     
-    embed = discord.Embed(
-        title=f"{emoji} Calculateur d'Amour",
-        description=f"**{personne1.display_name}** 💘 **{personne2.display_name}**",
-        color=color
-    )
+    result_message = f"{personne1.mention} + {personne2.mention} = **{love_percentage}%** of Love {emoji}\n**{personne1.display_name}** + **{personne2.display_name}** ? {message}"
     
-    filled = "█" * (love_percentage // 10)
-    empty = "░" * (10 - (love_percentage // 10))
-    progress_bar = f"`{filled}{empty}` **{love_percentage}%**"
-    
-    embed.add_field(name="💕 Résultat", value=progress_bar, inline=False)
-    embed.add_field(name="📊 Verdict", value=message, inline=False)
-    
-    await ctx.send(embed=embed)
+    # Créer l'image avec les deux avatars et le pourcentage
+    try:
+        # Télécharger les avatars
+        async with aiohttp.ClientSession() as session:
+            async with session.get(str(personne1.display_avatar.url)) as resp:
+                avatar1_data = await resp.read()
+            async with session.get(str(personne2.display_avatar.url)) as resp:
+                avatar2_data = await resp.read()
+        
+        # Ouvrir les images
+        avatar1 = Image.open(BytesIO(avatar1_data)).convert("RGBA").resize((200, 200))
+        avatar2 = Image.open(BytesIO(avatar2_data)).convert("RGBA").resize((200, 200))
+        
+        # Créer l'image finale
+        width = 600
+        height = 250
+        img = Image.new('RGB', (width, height), color=(47, 49, 54))
+        
+        # Créer des avatars circulaires
+        def make_circle(img):
+            mask = Image.new('L', img.size, 0)
+            draw = ImageDraw.Draw(mask)
+            draw.ellipse((0, 0) + img.size, fill=255)
+            result = Image.new('RGBA', img.size)
+            result.paste(img, (0, 0))
+            result.putalpha(mask)
+            return result
+        
+        avatar1_circle = make_circle(avatar1)
+        avatar2_circle = make_circle(avatar2)
+        
+        # Coller les avatars
+        img.paste(avatar1_circle, (50, 25), avatar1_circle)
+        img.paste(avatar2_circle, (350, 25), avatar2_circle)
+        
+        # Ajouter le pourcentage au milieu
+        draw = ImageDraw.Draw(img)
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 50)
+        except:
+            font = ImageFont.load_default()
+        
+        text = f"{love_percentage}%"
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        text_x = (width - text_width) // 2
+        text_y = (height - text_height) // 2
+        
+        draw.text((text_x, text_y), text, fill=(255, 255, 255), font=font)
+        
+        # Sauvegarder l'image
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        file = discord.File(buffer, filename='love.png')
+        await ctx.send(result_message, file=file)
+        
+    except Exception as e:
+        # Si erreur, envoyer juste le message
+        await ctx.send(result_message)
 
 # ===== AIDE =====
 
