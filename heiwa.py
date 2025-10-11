@@ -10,7 +10,7 @@ from io import BytesIO
 import random
 
 # ===== CONFIGURATION =====
-WELCOME_CHANNEL_ID = 1384523345705570487
+WELCOME_CHANNEL_ID = 1423555370948886581
 LEAVE_CHANNEL_ID = 9876543210987654321
 
 # Configuration des intents
@@ -691,3 +691,4 @@ async def love_calculator(ctx, *, args: str = None):
 async def help_command(ctx):
     """Affiche toutes les commandes"""
     embed = discord.Embed(
+
