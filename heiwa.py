@@ -7,6 +7,7 @@ from keep_alive import keep_alive
 from PIL import Image, ImageDraw, ImageFont
 import aiohttp
 from io import BytesIO
+import random
 
 # ===== CONFIGURATION =====
 WELCOME_CHANNEL_ID = 1384523345705570487
@@ -235,7 +236,7 @@ async def mute_member(ctx, member: discord.Member, duration: int = 10, *, raison
     if member.top_role >= ctx.author.top_role:
         return await ctx.send("❌ Ce membre a un rôle supérieur ou égal au tien !")
 
-    if duration > 40320:  # Max 28 jours
+    if duration > 40320:
         return await ctx.send("❌ Durée maximale : 40320 minutes (28 jours) !")
 
     try:
@@ -295,7 +296,7 @@ async def clear_messages(ctx, amount: int = 10):
         return await ctx.send("❌ Le nombre doit être positif !")
 
     try:
-        deleted = await ctx.channel.purge(limit=amount + 1)  # +1 pour inclure la commande
+        deleted = await ctx.channel.purge(limit=amount + 1)
         
         embed = discord.Embed(
             description=f"✅ **{len(deleted) - 1}** messages supprimés !",
@@ -560,7 +561,7 @@ async def user_info(ctx, membre: discord.Member = None):
     embed.add_field(name="📅 Compte créé", value=membre.created_at.strftime("%d/%m/%Y"), inline=True)
     embed.add_field(name="📅 A rejoint", value=membre.joined_at.strftime("%d/%m/%Y"), inline=True)
     
-    roles = [role.mention for role in membre.roles[1:]][:10]  # Max 10 rôles
+    roles = [role.mention for role in membre.roles[1:]][:10]
     embed.add_field(
         name=f"🎭 Rôles ({len(membre.roles) - 1})",
         value=" ".join(roles) if roles else "Aucun",
@@ -569,39 +570,33 @@ async def user_info(ctx, membre: discord.Member = None):
     
     await ctx.send(embed=embed)
 
-@bot.command(name='love', aliases=['lc', 'lovecalc'])
-async def love_calculator(ctx, option: str = None, personne2: discord.Member = None):
+# ===== LOVE CALCULATOR =====
+
+@bot.command(name='lc')
+async def love_calculator(ctx, *, args: str = None):
     """Calcule le taux d'amour entre toi et quelqu'un"""
-    import random
     
-    # Si aucune option, afficher le menu
-    if option is None:
-        menu_message = "💕 **Love Calculator**\nCalcule le taux d'amour entre deux personnes !\n\n📋 **Commandes**\n`+lc random` - Personne au hasard\n`+lc @membre` - Avec un membre spécifique"
+    if args is None:
+        menu_message = "💕 **Love Calculator**\nCalcule le taux d'amour entre deux personnes !\n\n📋 **Commandes disponibles :**\n• `+lc random` - Avec une personne au hasard\n• `+lc @membre` - Avec un membre spécifique"
         return await ctx.send(menu_message)
     
     personne1 = ctx.author
     
-    # Si option est "random"
-    if option.lower() == "random":
+    if args.lower() == "random":
         members = [m for m in ctx.guild.members if not m.bot and m != ctx.author]
         if len(members) < 1:
             return await ctx.send("❌ Pas assez de membres !")
         personne2 = random.choice(members)
-    
-    # Si option est une mention (discord.Member)
     else:
-        # Essayer de convertir l'option en Member
         try:
-            personne2 = await commands.MemberConverter().convert(ctx, option)
+            personne2 = await commands.MemberConverter().convert(ctx, args.strip('<@!> '))
         except:
             return await ctx.send("❌ Membre introuvable ! Utilise `+lc` pour voir les commandes.")
     
-    import random
     seed = int(str(personne1.id) + str(personne2.id))
     random.seed(seed)
     love_percentage = random.randint(0, 100)
     
-    # Définir la relation en fonction du pourcentage
     if love_percentage >= 90:
         message = "Amour fou ! 💘"
         emoji = "💘"
@@ -635,25 +630,20 @@ async def love_calculator(ctx, option: str = None, personne2: discord.Member = N
     
     result_message = f"{personne1.mention} + {personne2.mention} = **{love_percentage}%** of Love {emoji}\n**{personne1.display_name}** + **{personne2.display_name}** ? {message}"
     
-    # Créer l'image avec les deux avatars et le pourcentage
     try:
-        # Télécharger les avatars
         async with aiohttp.ClientSession() as session:
             async with session.get(str(personne1.display_avatar.url)) as resp:
                 avatar1_data = await resp.read()
             async with session.get(str(personne2.display_avatar.url)) as resp:
                 avatar2_data = await resp.read()
         
-        # Ouvrir les images
         avatar1 = Image.open(BytesIO(avatar1_data)).convert("RGBA").resize((200, 200))
         avatar2 = Image.open(BytesIO(avatar2_data)).convert("RGBA").resize((200, 200))
         
-        # Créer l'image finale
         width = 600
         height = 250
         img = Image.new('RGB', (width, height), color=(47, 49, 54))
         
-        # Créer des avatars circulaires
         def make_circle(img):
             mask = Image.new('L', img.size, 0)
             draw = ImageDraw.Draw(mask)
@@ -666,11 +656,9 @@ async def love_calculator(ctx, option: str = None, personne2: discord.Member = N
         avatar1_circle = make_circle(avatar1)
         avatar2_circle = make_circle(avatar2)
         
-        # Coller les avatars
         img.paste(avatar1_circle, (50, 25), avatar1_circle)
         img.paste(avatar2_circle, (350, 25), avatar2_circle)
         
-        # Ajouter le pourcentage au milieu
         draw = ImageDraw.Draw(img)
         try:
             font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 50)
@@ -686,7 +674,6 @@ async def love_calculator(ctx, option: str = None, personne2: discord.Member = N
         
         draw.text((text_x, text_y), text, fill=(255, 255, 255), font=font)
         
-        # Sauvegarder l'image
         buffer = BytesIO()
         img.save(buffer, format='PNG')
         buffer.seek(0)
@@ -695,7 +682,7 @@ async def love_calculator(ctx, option: str = None, personne2: discord.Member = N
         await ctx.send(result_message, file=file)
         
     except Exception as e:
-        # Si erreur, envoyer juste le message
+        print(f"Erreur image: {e}")
         await ctx.send(result_message)
 
 # ===== AIDE =====
@@ -704,70 +691,3 @@ async def love_calculator(ctx, option: str = None, personne2: discord.Member = N
 async def help_command(ctx):
     """Affiche toutes les commandes"""
     embed = discord.Embed(
-        title="📚 Menu d'Aide",
-        description="Liste de toutes les commandes disponibles",
-        color=discord.Color.purple(),
-        timestamp=datetime.now()
-    )
-
-    embed.add_field(
-        name="🛡️ Modération",
-        value="`+ban` `+kick` `+mute` `+unmute` `+clear`",
-        inline=False
-    )
-    
-    embed.add_field(
-        name="⚙️ Configuration",
-        value="`+set_welcome` `+set_leave` `+config`",
-        inline=False
-    )
-    
-    embed.add_field(
-        name="📩 Messages privés",
-        value="`+dmall` `+dmrole`",
-        inline=False
-    )
-    
-    embed.add_field(
-        name="🔧 Utilitaires",
-        value="`+ping` `+avatar` `+banner` `+serverinfo` `+userinfo`",
-        inline=False
-    )
-    
-    embed.add_field(
-        name="🎮 Fun",
-        value="`+love` `+lc` `+lovecalc`",
-        inline=False
-    )
-
-    embed.set_footer(text=f"Préfixe : + | Demandé par {ctx.author.display_name}")
-    
-    if ctx.guild.icon:
-        embed.set_thumbnail(url=ctx.guild.icon.url)
-
-    await ctx.send(embed=embed)
-
-# ===== GESTION DES ERREURS =====
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        embed = discord.Embed(
-            description="❌ Tu n'as pas les permissions nécessaires !",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-    elif isinstance(error, commands.MemberNotFound):
-        await ctx.send("❌ Membre introuvable !")
-    elif isinstance(error, commands.BadArgument):
-        await ctx.send("❌ Arguments invalides ! Utilise `+help`")
-    elif isinstance(error, commands.CommandNotFound):
-        return
-    else:
-        print(f"❌ Erreur : {error}")
-
-# ===== LANCEMENT =====
-
-if __name__ == "__main__":
-    keep_alive()
-    bot.run(os.environ['BOT_TOKEN'])
