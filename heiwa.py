@@ -54,8 +54,8 @@ async def on_member_join(member):
         # Message simple sans embed avec nombre de membres
         member_count = len(member.guild.members)
         message = (
-            f"⬜ Bienvenue {member.mention} profite bien sur **Heiwa** !\n\n"
-            f"⬜ Nous sommes actuellement **{member_count}** membres sur le serveur ! 🎉"
+            f"🔷 Bienvenue {member.mention} profite bien sur **Heiwa** !\n\n"
+            f"🔷 Nous sommes actuellement **{member_count}** membres sur le serveur ! 🎉"
         )
         await welcome_channel.send(message)
     else:
@@ -534,62 +534,38 @@ async def help_command(ctx):
     """📚 Affiche toutes les commandes disponibles"""
     embed = discord.Embed(
         title="📚 Menu d'Aide - Heiwa Bot",
-        description="Voici toutes les commandes disponibles du bot",
+        description="Liste de toutes les commandes disponibles",
         color=discord.Color.purple(),
         timestamp=datetime.now()
     )
-    
-    # Commandes de modération
-    embed.add_field(
-        name="🛡️ Modération",
-        value=(
-            "`+ban @membre [raison]` - Bannit un membre\n"
-            "`+mute @membre [minutes] [raison]` - Timeout un membre\n"
-            "`+unmute @membre` - Retire le timeout\n"
-            "`+delall [nombre]` - Supprime des messages (max 1000)"
-        ),
-        inline=False
-    )
-    
-    # Configuration
-    embed.add_field(
-        name="⚙️ Configuration",
-        value=(
-            "`+set_welcome #salon` - Configure le salon de bienvenue\n"
-            "`+set_leave #salon` - Configure le salon des départs\n"
-            "`+channels_config` - Affiche la configuration"
-        ),
-        inline=False
-    )
-    
-    # Messages privés
-    embed.add_field(
-        name="📩 Messages Privés",
-        value=(
-            "`+dmall <message>` - Envoie un MP à tous les membres\n"
-            "`+dmrole @role <message>` - Envoie un MP à un rôle"
-        ),
-        inline=False
-    )
-    
-    # Utilitaires
-    embed.add_field(
-        name="🔧 Utilitaires",
-        value=(
-            "`+ping` - Affiche la latence du bot\n"
-            "`+help` - Affiche ce menu"
-        ),
-        inline=False
-    )
-    
-    embed.set_footer(
-        text=f"Demandé par {ctx.author.display_name} • Préfixe: +",
-        icon_url=ctx.author.display_avatar.url
-    )
+
+    commands_list = [
+        ("🔨 `+ban @membre [raison]`", "Bannit un membre du serveur"),
+        ("🔇 `+mute @membre [minutes] [raison]`", "Mute temporairement un membre"),
+        ("🔊 `+unmute @membre`", "Démute un membre"),
+        ("🗑️ `+delall [nombre]`", "Supprime tous les messages (max 1000)"),
+        ("🏓 `+ping`", "Teste la latence du bot"),
+        ("⚙️ **Configuration des salons:**", ""),
+        ("🏠 `+set_welcome #salon`", "Configure le salon de bienvenue"),
+        ("👋 `+set_leave #salon`", "Configure le salon des départs"),
+        ("📋 `+channels_config`", "Affiche la configuration actuelle"),
+        ("📩 **Messages privés:**", ""),
+        ("📤 `+dmall <message>`", "Envoie un MP à tous les membres"),
+        ("🎭 `+dmrole @role <message>`", "Envoie un MP aux membres d'un rôle")
+    ]
+
+    for cmd, desc in commands_list:
+        if desc:  # Skip empty descriptions
+            embed.add_field(name=cmd, value=desc, inline=False)
+        else:
+            embed.add_field(name=cmd, value="\u200b", inline=False)  # Invisible character for spacing
+
+    embed.set_footer(text=f"Demandé par {ctx.author.display_name} • Préfixe: +", 
+                     icon_url=ctx.author.display_avatar.url)
     
     if ctx.guild.icon:
         embed.set_thumbnail(url=ctx.guild.icon.url)
-    
+
     await ctx.send(embed=embed)
 
 @bot.command(name='help_mod', aliases=['aide'])
@@ -609,6 +585,140 @@ async def ping(ctx):
         color=discord.Color.green() if latency < 100 else discord.Color.orange()
     )
 
+    await ctx.send(embed=embed)
+
+# ===== COMMANDES UTILITAIRES =====
+
+# Commande PDP (Photo de profil)
+@bot.command(name='pdp', aliases=['avatar', 'pp'])
+async def show_avatar(ctx, membre: discord.Member = None):
+    """🖼️ Affiche la photo de profil d'un membre"""
+    # Si aucun membre n'est mentionné, affiche celle de l'auteur
+    membre = membre or ctx.author
+    
+    embed = discord.Embed(
+        title=f"🖼️ Photo de profil de {membre.display_name}",
+        color=membre.color if membre.color != discord.Color.default() else discord.Color.blue(),
+        timestamp=datetime.now()
+    )
+    
+    # Photo de profil en haute qualité
+    avatar_url = membre.display_avatar.url
+    embed.set_image(url=avatar_url)
+    
+    # Lien de téléchargement
+    embed.add_field(
+        name="🔗 Liens",
+        value=f"[PNG]({membre.display_avatar.with_format('png').url}) • "
+              f"[JPG]({membre.display_avatar.with_format('jpg').url}) • "
+              f"[WEBP]({membre.display_avatar.with_format('webp').url})",
+        inline=False
+    )
+    
+    embed.set_footer(text=f"Demandé par {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+    
+    await ctx.send(embed=embed)
+
+# Commande BANNER (Bannière)
+@bot.command(name='banner', aliases=['banniere'])
+async def show_banner(ctx, membre: discord.Member = None):
+    """🎨 Affiche la bannière d'un membre"""
+    # Si aucun membre n'est mentionné, affiche celle de l'auteur
+    membre = membre or ctx.author
+    
+    # Il faut fetch le profil complet pour avoir la bannière
+    user = await bot.fetch_user(membre.id)
+    
+    if user.banner:
+        embed = discord.Embed(
+            title=f"🎨 Bannière de {membre.display_name}",
+            color=membre.color if membre.color != discord.Color.default() else discord.Color.purple(),
+            timestamp=datetime.now()
+        )
+        
+        banner_url = user.banner.url
+        embed.set_image(url=banner_url)
+        
+        # Lien de téléchargement
+        embed.add_field(
+            name="🔗 Liens",
+            value=f"[PNG]({user.banner.with_format('png').url}) • "
+                  f"[JPG]({user.banner.with_format('jpg').url}) • "
+                  f"[WEBP]({user.banner.with_format('webp').url})",
+            inline=False
+        )
+        
+        embed.set_footer(text=f"Demandé par {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+        
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(f"❌ **{membre.display_name}** n'a pas de bannière configurée!")
+
+# Commande LC (LoveCalc / Love Calculator)
+@bot.command(name='lc', aliases=['lovecalc', 'love'])
+async def love_calculator(ctx, personne1: discord.Member = None, personne2: discord.Member = None):
+    """💕 Calcule le taux d'amour entre deux personnes"""
+    
+    # Si aucun argument, choisit deux personnes aléatoires
+    if personne1 is None and personne2 is None:
+        members = [m for m in ctx.guild.members if not m.bot]
+        if len(members) < 2:
+            return await ctx.send("❌ Pas assez de membres sur le serveur!")
+        
+        import random
+        personne1, personne2 = random.sample(members, 2)
+    
+    # Si une seule personne mentionnée, l'autre est l'auteur
+    elif personne2 is None:
+        personne2 = personne1
+        personne1 = ctx.author
+    
+    # Calcul du pourcentage (basé sur les IDs pour cohérence)
+    import random
+    seed = int(str(personne1.id) + str(personne2.id))
+    random.seed(seed)
+    love_percentage = random.randint(0, 100)
+    
+    # Déterminer le message et la couleur selon le pourcentage
+    if love_percentage >= 80:
+        message = "💖 **Match parfait !** Vous êtes faits l'un pour l'autre !"
+        color = discord.Color.red()
+        emoji = "💖"
+    elif love_percentage >= 60:
+        message = "💕 **Belle alchimie !** Ça peut fonctionner !"
+        color = discord.Color.magenta()
+        emoji = "💕"
+    elif love_percentage >= 40:
+        message = "💗 **Pas mal !** Il y a du potentiel !"
+        color = discord.Color.pink()
+        emoji = "💗"
+    elif love_percentage >= 20:
+        message = "💙 **Amitié possible ?** L'amour, c'est compliqué..."
+        color = discord.Color.blue()
+        emoji = "💙"
+    else:
+        message = "💔 **Aucune compatibilité...** Désolé !"
+        color = discord.Color.dark_gray()
+        emoji = "💔"
+    
+    # Création de l'embed
+    embed = discord.Embed(
+        title=f"{emoji} Calculateur d'Amour {emoji}",
+        description=f"**{personne1.display_name}** 💘 **{personne2.display_name}**",
+        color=color,
+        timestamp=datetime.now()
+    )
+    
+    # Barre de progression visuelle
+    filled = "█" * (love_percentage // 10)
+    empty = "░" * (10 - (love_percentage // 10))
+    progress_bar = f"`{filled}{empty}` **{love_percentage}%**"
+    
+    embed.add_field(name="💕 Taux d'amour", value=progress_bar, inline=False)
+    embed.add_field(name="📊 Résultat", value=message, inline=False)
+    
+    embed.set_footer(text=f"Demandé par {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+    
     await ctx.send(embed=embed)
 
 # Gestion des erreurs
