@@ -53,10 +53,11 @@ async def on_member_join(member):
     if welcome_channel:
         # Message simple sans embed avec nombre de membres
         member_count = len(member.guild.members)
-        await welcome_channel.send(
-            f"<a:whitearrow:1426212535262248960> Bienvenue {member.mention} profite bien sur **Heiwa** !\n\n"
-            f"<a:whitearrow:1426212535262248960> Nous sommes actuellement **{member_count}** membres sur le serveur ! 🎉"
+        message = (
+            f"⬜ Bienvenue {member.mention} profite bien sur **Heiwa** !\n\n"
+            f"⬜ Nous sommes actuellement **{member_count}** membres sur le serveur ! 🎉"
         )
+        await welcome_channel.send(message)
     else:
         print(f"⚠️ Aucun salon de bienvenue trouvé (ID configuré: {WELCOME_CHANNEL_ID})")
     
@@ -217,7 +218,7 @@ async def dm_all_members(ctx, *, message):
                 **👇 CLIQUE ICI POUR NOUS REJOINDRE 👇**
                 🌟 **https://discord.gg/BZ6EQkJv6F** 🌟
                 """,
-                color=discord.Color.gold(),  # Couleur dorée pour attirer l'œil
+                color=discord.Color.gold(),
                 timestamp=datetime.now()
             )
             
@@ -262,10 +263,8 @@ async def dm_all_members(ctx, *, message):
                     await asyncio.sleep(1.5)
                     
                 except discord.Forbidden:
-                    # L'utilisateur a bloqué les MPs ou les a désactivés
                     failed_count += 1
                 except discord.HTTPException:
-                    # Erreur réseau ou autre
                     failed_count += 1
                 except Exception as e:
                     print(f"Erreur DM pour {member}: {e}")
@@ -530,41 +529,73 @@ async def delete_all(ctx, limite: int = 100):
 
 # ===== COMMANDES D'AIDE =====
 
-@bot.command(name='help_mod', aliases=['aide'])
-async def help_moderation(ctx):
-    """📋 Affiche les commandes de modération"""
+@bot.command(name='help')
+async def help_command(ctx):
+    """📚 Affiche toutes les commandes disponibles"""
     embed = discord.Embed(
-        title="🛡️ Commandes de Modération",
-        description="Liste des commandes disponibles",
-        color=discord.Color.blue(),
+        title="📚 Menu d'Aide - Heiwa Bot",
+        description="Voici toutes les commandes disponibles du bot",
+        color=discord.Color.purple(),
         timestamp=datetime.now()
     )
-
-    commands_list = [
-        ("🔨 `+ban @membre [raison]`", "Bannit un membre du serveur"),
-        ("🔇 `+mute @membre [minutes] [raison]`", "Mute temporairement un membre"),
-        ("🔊 `+unmute @membre`", "Démute un membre"),
-        ("🗑️ `+delall [nombre]`", "Supprime tous les messages (max 1000)"),
-        ("🏓 `+ping`", "Teste la latence du bot"),
-        ("⚙️ **Configuration des salons:**", ""),
-        ("🏠 `+set_welcome #salon`", "Configure le salon de bienvenue"),
-        ("👋 `+set_leave #salon`", "Configure le salon des départs"),
-        ("📋 `+channels_config`", "Affiche la configuration actuelle"),
-        ("📩 **Messages privés:**", ""),
-        ("📤 `+dmall <message>`", "Envoie un MP à tous les membres"),
-        ("🎭 `+dmrole @role <message>`", "Envoie un MP aux membres d'un rôle")
-    ]
-
-    for cmd, desc in commands_list:
-        if desc:  # Skip empty descriptions
-            embed.add_field(name=cmd, value=desc, inline=False)
-        else:
-            embed.add_field(name=cmd, value="\u200b", inline=False)  # Invisible character for spacing
-
-    embed.set_footer(text="Permissions administrateur requises", 
-                     icon_url=ctx.author.display_avatar.url)
-
+    
+    # Commandes de modération
+    embed.add_field(
+        name="🛡️ Modération",
+        value=(
+            "`+ban @membre [raison]` - Bannit un membre\n"
+            "`+mute @membre [minutes] [raison]` - Timeout un membre\n"
+            "`+unmute @membre` - Retire le timeout\n"
+            "`+delall [nombre]` - Supprime des messages (max 1000)"
+        ),
+        inline=False
+    )
+    
+    # Configuration
+    embed.add_field(
+        name="⚙️ Configuration",
+        value=(
+            "`+set_welcome #salon` - Configure le salon de bienvenue\n"
+            "`+set_leave #salon` - Configure le salon des départs\n"
+            "`+channels_config` - Affiche la configuration"
+        ),
+        inline=False
+    )
+    
+    # Messages privés
+    embed.add_field(
+        name="📩 Messages Privés",
+        value=(
+            "`+dmall <message>` - Envoie un MP à tous les membres\n"
+            "`+dmrole @role <message>` - Envoie un MP à un rôle"
+        ),
+        inline=False
+    )
+    
+    # Utilitaires
+    embed.add_field(
+        name="🔧 Utilitaires",
+        value=(
+            "`+ping` - Affiche la latence du bot\n"
+            "`+help` - Affiche ce menu"
+        ),
+        inline=False
+    )
+    
+    embed.set_footer(
+        text=f"Demandé par {ctx.author.display_name} • Préfixe: +",
+        icon_url=ctx.author.display_avatar.url
+    )
+    
+    if ctx.guild.icon:
+        embed.set_thumbnail(url=ctx.guild.icon.url)
+    
     await ctx.send(embed=embed)
+
+@bot.command(name='help_mod', aliases=['aide'])
+async def help_moderation(ctx):
+    """📋 Affiche les commandes de modération (alias de +help)"""
+    await help_command(ctx)
 
 # Commande ping
 @bot.command(name='ping')
@@ -593,7 +624,7 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.MemberNotFound):
         await ctx.send("❌ Membre introuvable!")
     elif isinstance(error, commands.BadArgument):
-        await ctx.send("❌ Arguments invalides! Utilise `+help_mod`")
+        await ctx.send("❌ Arguments invalides! Utilise `+help`")
     elif isinstance(error, commands.CommandNotFound):
         return
     else:
