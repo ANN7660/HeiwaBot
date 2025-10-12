@@ -692,3 +692,4 @@ async def help_command(ctx):
     """Affiche toutes les commandes"""
     embed = discord.Embed(
 
+
